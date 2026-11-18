@@ -6,7 +6,7 @@
 
 Explicación completa: [docs/explicacion_uml.md](docs/explicacion_uml.md)
 
-## Justificacion de patrones
+## Justificación de patrones
 
 ### Abstracción de autoría y Factory Method
 
@@ -33,6 +33,7 @@ app/
 └── patterns/
     ├── factory/      # Factory Method: ResponseCreator y creadores concretos
     └── strategy/     # Strategy: LLMStrategy y proveedores de LLM
+migrations/           # historial de migraciones de la base (Alembic)
 tests/                # tests con pytest
 docs/                 # diagrama UML y su explicación
 ```
@@ -45,3 +46,36 @@ Requisitos: uv y Python 3.12+
 uv sync
 uv run flask --app app run --debug
 ```
+
+## Base de datos y migraciones
+
+Por defecto se usa SQLite (`instance/proyecto.db`). Para usar otra base, definí la variable de entorno `DATABASE_URL`. Por ejemplo, para PostgreSQL hace falta el driver y la URL de conexión:
+
+```bash
+uv add "psycopg[binary]"
+export DATABASE_URL="postgresql+psycopg://usuario:clave@localhost:5432/proyecto"
+```
+
+### Tener la base al día
+
+Después de clonar el repo o de traer cambios de `main`:
+
+```bash
+uv run flask --app app db upgrade
+```
+
+### Cambiar el esquema
+
+Cuando modifiques un modelo:
+
+```bash
+uv run flask --app app db migrate -m "descripción del cambio"
+```
+
+Esto genera un archivo en `migrations/versions/`. Revisalo antes de seguir, porque Alembic no siempre detecta todo correctamente. Después aplicalo:
+
+```bash
+uv run flask --app app db upgrade
+```
+
+Los archivos de `migrations/` se commitean junto con el cambio del modelo.
