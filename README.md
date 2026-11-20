@@ -79,3 +79,11 @@ uv run flask --app app db upgrade
 ```
 
 Los archivos de `migrations/` se commitean junto con el cambio del modelo.
+
+## Tests y estilo de código
+
+```bash
+uv run pytest                # corre los tests y muestra la cobertura
+uv run ruff check            # revisa errores y orden de imports
+uv run ruff format           # formatea el código
+```
