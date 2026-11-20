@@ -19,3 +19,14 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.17.6",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
