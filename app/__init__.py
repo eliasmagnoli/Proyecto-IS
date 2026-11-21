@@ -16,6 +16,8 @@ def create_app(config: dict | None = None) -> Flask:
 
     db.init_app(app)
     migrate.init_app(app, db)
+    from app import models  # noqa: F401
+
     app.register_blueprint(users_bp)
     app.register_blueprint(questions_bp)
     app.register_blueprint(responses_bp)
