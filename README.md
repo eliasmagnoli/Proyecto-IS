@@ -48,6 +48,12 @@ uv run flask --app app db upgrade
 uv run flask --app app run --debug
 ```
 
+Para que las sesiones sean seguras fuera de desarrollo, definí una clave secreta propia:
+
+```bash
+export SECRET_KEY="una-clave-larga-y-aleatoria"
+```
+
 ## Endpoints
 
 ### POST /users/register
@@ -64,6 +70,38 @@ Respuestas:
 
 - `201`: usuario creado. Devuelve `id`, `username`, `email` y `role`.
 - `400`: datos inválidos. Devuelve `{"errors": {...}}` con un mensaje por cada campo con problema.
+
+### POST /users/login
+
+Inicia sesión con `email` y `password` en un JSON. Si son correctos, el servidor guarda el usuario en la sesión (una cookie firmada de Flask) y devuelve sus datos. El email no distingue mayúsculas de minúsculas. Si el email no existe o la contraseña es incorrecta, devuelve el mismo error, para no revelar qué emails están registrados.
+
+```bash
+curl -i -c cookies.txt -X POST localhost:5000/users/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ana@example.com","password":"secreto123"}'
+```
+
+Respuestas:
+
+- `200`: sesión iniciada. Devuelve `id`, `username`, `email` y `role`.
+- `401`: credenciales incorrectas.
+
+### POST /users/logout
+
+Cierra la sesión borrando la cookie. Responde `204`.
+
+### GET /users/me
+
+Devuelve el usuario con la sesión iniciada. Es un ejemplo de ruta protegida con `@login_required`. Para probarlo con curl hay que reenviar la cookie con `-b cookies.txt`.
+
+- `200`: datos del usuario.
+- `401`: no hay sesión iniciada.
+
+### Limitaciones conocidas
+
+- Las sesiones viven en una cookie firmada y el servidor no guarda nada. Por eso el logout solo borra la cookie del navegador: una cookie copiada antes de cerrar sesión sigue siendo válida hasta que vence (31 días por defecto).
+- No hay límite de intentos de login.
+- La validación del email solo comprueba el formato, no que la casilla exista.
 
 ## Base de datos y migraciones
 
