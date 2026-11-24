@@ -34,8 +34,8 @@ app/
     ├── factory/      # Factory Method: ResponseCreator y creadores concretos
     └── strategy/     # Strategy: LLMStrategy y proveedores de LLM
 migrations/           # historial de migraciones de la base (Alembic)
-tests/                # tests con pytest
-docs/                 # diagrama UML y su explicación
+tests/                # tests con pytest (unit/ y functional/)
+docs/                 # diagrama UML, su explicación y decisiones de diseño
 ```
 
 ## Cómo ejecutarlo
@@ -44,8 +44,26 @@ Requisitos: uv y Python 3.12+
 
 ```bash
 uv sync
+uv run flask --app app db upgrade
 uv run flask --app app run --debug
 ```
+
+## Endpoints
+
+### POST /users/register
+
+Registra un usuario nuevo con el rol `GENERAL_USER`. Recibe un JSON con `username` (3 a 50 caracteres), `email` y `password` (mínimo 8 caracteres). El email se guarda en minúsculas y tanto el email como el nombre de usuario deben ser únicos. La contraseña se guarda solo como hash.
+
+```bash
+curl -X POST localhost:5000/users/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"ana","email":"ana@example.com","password":"secreto123"}'
+```
+
+Respuestas:
+
+- `201`: usuario creado. Devuelve `id`, `username`, `email` y `role`.
+- `400`: datos inválidos. Devuelve `{"errors": {...}}` con un mensaje por cada campo con problema.
 
 ## Base de datos y migraciones
 
