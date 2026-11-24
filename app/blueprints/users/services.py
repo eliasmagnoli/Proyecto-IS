@@ -59,3 +59,14 @@ def register_user(username, email, password) -> User:
         raise RegistrationError({"email": "Ese email o nombre de usuario ya está en uso."})
 
     return user
+
+
+def authenticate(email, password) -> User | None:
+    email = _clean(email).lower()
+    if not email or not isinstance(password, str):
+        return None
+
+    user = db.session.scalar(db.select(User).filter_by(email=email))
+    if user is None or not user.check_password(password):
+        return None
+    return user
