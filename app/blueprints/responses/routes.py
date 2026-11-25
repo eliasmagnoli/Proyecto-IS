@@ -50,3 +50,31 @@ def create_response():
         return jsonify({"error": "No se pudo guardar la respuesta."}), 400
 
     return jsonify(_response_to_dict(response)), 201
+
+
+@bp.post("/<int:response_id>/accept")
+@login_required
+def accept_response(response_id: int):
+    response = db.session.get(Response, response_id)
+    if response is None:
+        return jsonify({"error": "Respuesta no encontrada."}), 404
+
+    question = response.question or db.session.get(Question, response.question_id)
+    if question is None:
+        return jsonify({"error": "Pregunta no encontrada."}), 404
+
+    user = current_user()
+    if question.author_id != user.id:
+        return jsonify({"error": "Solo el autor de la pregunta puede aceptar una respuesta."}), 403
+
+    for item in question.responses:
+        item.is_accepted = item.id == response.id
+    response.is_accepted = True
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "No se pudo aceptar la respuesta."}), 400
+
+    return jsonify(_response_to_dict(response)), 200
