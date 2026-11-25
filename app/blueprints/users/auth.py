@@ -3,7 +3,7 @@ from functools import wraps
 from flask import jsonify, session
 
 from app.extensions import db
-from app.models import User
+from app.models import Role, User
 
 
 def current_user() -> User | None:
@@ -26,3 +26,19 @@ def login_required(view):
         return view(*args, **kwargs)
 
     return wrapped
+
+
+def role_required(*roles: Role):
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            user = current_user()
+            if user is None:
+                return jsonify({"error": "Authentication required."}), 401
+            if user.role not in roles:
+                return jsonify({"error": "You do not have permission to do this."}), 403
+            return view(*args, **kwargs)
+
+        return wrapped
+
+    return decorator

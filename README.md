@@ -97,6 +97,22 @@ Devuelve el usuario con la sesión iniciada. Es un ejemplo de ruta protegida con
 - `200`: datos del usuario.
 - `401`: no hay sesión iniciada.
 
+### Permisos por rol
+
+Para restringir una ruta a un rol se usa el decorador `role_required`:
+
+```python
+from app.blueprints.users.auth import role_required
+from app.models import Role
+
+
+@bp.post("/algo")
+@role_required(Role.ADMIN)
+def algo(): ...
+```
+
+Sin sesión devuelve `401`; con sesión pero sin el rol necesario, `403`. Acepta varios roles: `@role_required(Role.ADMIN, Role.GENERAL_USER)`.
+
 ### Limitaciones conocidas
 
 - Las sesiones viven en una cookie firmada y el servidor no guarda nada. Por eso el logout solo borra la cookie del navegador: una cookie copiada antes de cerrar sesión sigue siendo válida hasta que vence (31 días por defecto).
