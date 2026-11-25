@@ -1,7 +1,8 @@
 from sqlalchemy import ForeignKey, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.author import Author
+from app.models.tag import Tag, agent_tags
 from app.patterns.strategy.llm_strategy import LLMStrategy
 
 DEFAULT_PROMPT = (
@@ -19,6 +20,7 @@ class AIAgent(Author):
     timeout_minutes: Mapped[int] = mapped_column(default=60)
 
     __mapper_args__ = {"polymorphic_identity": "ai_agent"}
+    trigger_tags: Mapped[list[Tag]] = relationship(secondary=agent_tags)
 
     # La estrategia no se guarda en la base: se asigna en tiempo de ejecución.
     _strategy = None
