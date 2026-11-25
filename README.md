@@ -47,6 +47,7 @@ app/
 ├── cli.py            # comandos de Flask
 ├── models/           # una clase del diagrama por archivo
 ├── blueprints/       # rutas HTTP, un módulo por área (users, questions, responses, votes)
+├── services/         # lógica compartida entre módulos (disparo de agentes de IA)
 └── patterns/
     ├── factory/      # Factory Method: ResponseCreator y creadores concretos
     └── strategy/     # Strategy: LLMStrategy y proveedores de LLM
@@ -135,6 +136,7 @@ Sin sesión devuelve `401`; con sesión pero sin el rol necesario, `403`. Acepta
 - Las sesiones viven en una cookie firmada y el servidor no guarda nada. Por eso el logout solo borra la cookie del navegador: una cookie copiada antes de cerrar sesión sigue siendo válida hasta que vence (31 días por defecto).
 - No hay límite de intentos de login.
 - La validación del email solo comprueba el formato, no que la casilla exista.
+- La respuesta automática se genera dentro del mismo pedido HTTP, así que publicar una pregunta etiquetada puede tardar lo que tarde el LLM.
 
 ## Agente de IA
 
@@ -194,6 +196,20 @@ agent.set_strategy(LocalInferenceStrategy.from_env())
 ```
 
 La estrategia no se guarda en la base de datos: hay que asignarla cada vez que se carga el agente. Si el proveedor falla, la estrategia lanza `LLMError`.
+
+### Respuesta automática por etiqueta
+
+Un agente se asocia a una o más etiquetas (por ejemplo `ia-help`). Cuando se publica una pregunta con alguna de ellas, hay que llamar a:
+
+```python
+from app.services.ai_agent_triggers import trigger_agents
+
+trigger_agents(question)
+```
+
+Cada agente asociado responde a través de `AIResponseCreator`. Si la pregunta no tiene etiquetas de agente, no pasa nada. Si el LLM falla, la pregunta queda publicada y el error se registra en el log. Un agente no responde dos veces a la misma pregunta.
+
+El proveedor se elige con la variable `LLM_PROVIDER` (`gemini` por defecto, o `local`).
 
 ## Base de datos y migraciones
 
