@@ -14,6 +14,23 @@ Explicación completa: [docs/explicacion_uml.md](docs/explicacion_uml.md)
 
 Lo que cambia entre ambos casos no es la clase `Response`, sino cómo se construye: de dónde sale el contenido y qué autor se asigna. Esa variación se encapsula con Factory Method: `ResponseCreator` define un único flujo de publicación y delega en `HumanResponseCreator` y `AIResponseCreator` los pasos que difieren. Agregar un nuevo tipo de autor implica agregar una subclase de `Author` y una de `ResponseCreator`, sin modificar el código existente.
 
+#### Dónde está en el código
+
+Los creadores están en `app/patterns/factory/`:
+
+- `ResponseCreator`: clase abstracta con el método plantilla `publish_response(question, raw_content)`. Obtiene el texto, valida que no esté vacío, crea la respuesta y la guarda.
+- `HumanResponseCreator(user)`: usa el texto que escribió la persona y asigna al `User` como autor.
+- `AIResponseCreator(agent)`: ignora `raw_content`, pide el texto al agente (que lo genera con su estrategia de LLM) y asigna al `AIAgent` como autor.
+
+Toda respuesta debe publicarse con `publish_response`, y no creando `Response` directamente. Así el flujo es el mismo para humanos y para la IA:
+
+```python
+HumanResponseCreator(user).publish_response(question, "Mi respuesta")
+AIResponseCreator(agent).publish_response(question)
+```
+
+Si el texto queda vacío, lanza `ValueError` y no guarda nada. Si el LLM falla, `AIResponseCreator` deja pasar el `LLMError` para que lo maneje quien lo llama.
+
 ### Strategy
 
 `AIAgent` genera respuestas automáticas con un LLM, pero el proveedor puede variar (OpenAI, Gemini, un modelo local). Con Strategy, `AIAgent` depende solo de la interfaz `LLMStrategy`, y cada proveedor es una estrategia concreta que la implementa y encapsula sus propios detalles (credenciales, modelo, parámetros).
