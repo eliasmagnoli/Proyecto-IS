@@ -1,4 +1,4 @@
-
+﻿
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
@@ -19,14 +19,14 @@ def _question_to_dict(question: Question) -> dict:
         "author_id": question.author_id,
         "category_id": question.category_id,
         "tags": [tag.name for tag in question.tags],
-        "created_at": question.created_at.isoformat(),
+        "published_at": question.published_at.isoformat(),
     }
 
 
 @bp.get("/")
 def list_questions():
     questions = db.session.scalars(
-        db.select(Question).order_by(Question.created_at.desc(), Question.id.desc())
+        db.select(Question).order_by(Question.published_at.desc(), Question.id.desc())
     ).all()
     return jsonify([_question_to_dict(q) for q in questions]), 200
 
@@ -49,15 +49,15 @@ def create_question():
     raw_tags = data.get("tags") or []
 
     if not title:
-        return jsonify({"error": "El título es obligatorio."}), 400
+        return jsonify({"error": "El tÃ­tulo es obligatorio."}), 400
     if not body:
         return jsonify({"error": "El cuerpo de la pregunta es obligatorio."}), 400
     if not category_id:
-        return jsonify({"error": "La categoría es obligatoria."}), 400
+        return jsonify({"error": "La categorÃ­a es obligatoria."}), 400
 
     category = db.session.get(Category, category_id)
     if category is None:
-        return jsonify({"error": "Categoría no encontrada."}), 404
+        return jsonify({"error": "CategorÃ­a no encontrada."}), 404
 
     user = current_user()
     tag_objects = []
