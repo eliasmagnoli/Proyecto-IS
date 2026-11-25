@@ -119,6 +119,40 @@ Sin sesión devuelve `401`; con sesión pero sin el rol necesario, `403`. Acepta
 - No hay límite de intentos de login.
 - La validación del email solo comprueba el formato, no que la casilla exista.
 
+## Agente de IA
+
+El agente (`AIAgent`) genera respuestas con un LLM a través de la interfaz `LLMStrategy` (patrón Strategy). Por ahora hay dos estrategias:
+
+- `GeminiStrategy`: usa la API de Gemini.
+- `FakeStrategy`: respuestas simuladas, para tests. No llama a ningún proveedor.
+
+### Configurar Gemini
+
+1. Sacá una clave de API en [Google AI Studio](https://aistudio.google.com/).
+2. Definila como variable de entorno. La app no lee el archivo `.env` sola, así que hay que exportarla:
+
+```bash
+export GEMINI_API_KEY="tu-clave"
+export GEMINI_MODEL="gemini-3.8-flash"   # opcional
+```
+
+`GEMINI_MODEL` es opcional; si no se define, se usa `gemini-3.8-flash`. Las variables disponibles están en `.env.example`. La clave nunca debe commitearse: `.env` está en `.gitignore`.
+
+### Probarlo a mano
+
+```bash
+uv run python -c "from app.patterns.strategy.gemini_strategy import GeminiStrategy; print(GeminiStrategy.from_env().generate_completion('Respondé en una frase.', '¿Qué es Flask?'))"
+```
+
+### Uso en el código
+
+```python
+agent.set_strategy(GeminiStrategy.from_env())
+texto = agent.generate_auto_response(question)
+```
+
+La estrategia no se guarda en la base de datos: hay que asignarla cada vez que se carga el agente. Si el proveedor falla, la estrategia lanza `LLMError`.
+
 ## Base de datos y migraciones
 
 Por defecto se usa SQLite (`instance/proyecto.db`). Para usar otra base, definí la variable de entorno `DATABASE_URL`. Por ejemplo, para PostgreSQL hace falta el driver y la URL de conexión:
