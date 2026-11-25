@@ -1,10 +1,13 @@
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 from app.extensions import db
 from app.models import AIAgent
 from app.patterns.strategy.fake_strategy import FakeStrategy
+from app.patterns.strategy.gemini_strategy import GeminiStrategy
+from app.patterns.strategy.local_inference_strategy import LocalInferenceStrategy
 
 QUESTION = SimpleNamespace(title="¿Qué es un blueprint?", body="No entiendo para qué sirven.")
 
@@ -39,3 +42,43 @@ def test_strategy_is_not_persisted_and_agent_still_loads(app):
 
     with pytest.raises(RuntimeError):
         loaded.generate_auto_response(QUESTION)
+
+
+def test_changing_strategy_at_runtime_changes_the_response_not_the_agent():
+    agent = make_agent()
+
+    agent.set_strategy(FakeStrategy(response="respuesta A"))
+    first = agent.generate_auto_response(QUESTION)
+
+    agent.set_strategy(FakeStrategy(response="respuesta B"))
+    second = agent.generate_auto_response(QUESTION)
+
+    assert (first, second) == ("respuesta A", "respuesta B")
+
+
+def test_agent_switches_between_real_providers_with_the_same_code():
+    gemini = GeminiStrategy(
+        api_key="k",
+        client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(
+                    200, json={"candidates": [{"content": {"parts": [{"text": "desde Gemini"}]}}]}
+                )
+            )
+        ),
+    )
+    local = LocalInferenceStrategy(
+        client=httpx.Client(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, json={"message": {"content": "desde local"}})
+            )
+        )
+    )
+    agent = make_agent()
+
+    agent.set_strategy(gemini)
+    first = agent.generate_auto_response(QUESTION)
+    agent.set_strategy(local)
+    second = agent.generate_auto_response(QUESTION)
+
+    assert (first, second) == ("desde Gemini", "desde local")

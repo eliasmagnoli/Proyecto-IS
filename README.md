@@ -121,9 +121,10 @@ Sin sesión devuelve `401`; con sesión pero sin el rol necesario, `403`. Acepta
 
 ## Agente de IA
 
-El agente (`AIAgent`) genera respuestas con un LLM a través de la interfaz `LLMStrategy` (patrón Strategy). Por ahora hay dos estrategias:
+El agente (`AIAgent`) genera respuestas con un LLM a través de la interfaz `LLMStrategy` (patrón Strategy). Por ahora hay tres estrategias:
 
 - `GeminiStrategy`: usa la API de Gemini.
+- `LocalInferenceStrategy`: usa un modelo que corre en tu propia máquina a través de Ollama.
 - `FakeStrategy`: respuestas simuladas, para tests. No llama a ningún proveedor.
 
 ### Configurar Gemini
@@ -138,10 +139,28 @@ export GEMINI_MODEL="gemini-3.8-flash"   # opcional
 
 `GEMINI_MODEL` es opcional; si no se define, se usa `gemini-3.8-flash`. Las variables disponibles están en `.env.example`. La clave nunca debe commitearse: `.env` está en `.gitignore`.
 
-### Probarlo a mano
+### Probar Gemini a mano
 
 ```bash
 uv run python -c "from app.patterns.strategy.gemini_strategy import GeminiStrategy; print(GeminiStrategy.from_env().generate_completion('Respondé en una frase.', '¿Qué es Flask?'))"
+```
+
+### Configurar el modelo local
+
+Usa [Ollama](https://ollama.com/) para correr un modelo en tu propia máquina, sin clave ni costo:
+
+```bash
+ollama pull llama3.2
+```
+
+Por defecto la estrategia se conecta a `http://localhost:11434` y usa el modelo `llama3.2`. Se pueden cambiar con las variables `LOCAL_LLM_URL` y `LOCAL_LLM_MODEL` (están en `.env.example`). Un modelo local puede tardar bastante en responder, sobre todo sin GPU.
+
+A diferencia del diagrama UML, donde `LocalInferenceStrategy` tenía `modelPath` y `device`, acá el modelo corre en un servidor aparte (Ollama) y la clase solo necesita el nombre del modelo y la dirección. El patrón no cambia: sigue siendo una estrategia concreta que implementa `LLMStrategy`.
+
+### Probar el modelo local a mano
+
+```bash
+uv run python -c "from app.patterns.strategy.local_inference_strategy import LocalInferenceStrategy; print(LocalInferenceStrategy.from_env().generate_completion('Respondé en una frase.', '¿Qué es Flask?'))"
 ```
 
 ### Uso en el código
@@ -149,6 +168,12 @@ uv run python -c "from app.patterns.strategy.gemini_strategy import GeminiStrate
 ```python
 agent.set_strategy(GeminiStrategy.from_env())
 texto = agent.generate_auto_response(question)
+```
+
+Para cambiar de proveedor, incluso en tiempo de ejecución, alcanza con asignar otra estrategia. `AIAgent` no cambia:
+
+```python
+agent.set_strategy(LocalInferenceStrategy.from_env())
 ```
 
 La estrategia no se guarda en la base de datos: hay que asignarla cada vez que se carga el agente. Si el proveedor falla, la estrategia lanza `LLMError`.
