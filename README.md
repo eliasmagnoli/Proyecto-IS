@@ -211,6 +211,37 @@ Cada agente asociado responde a través de `AIResponseCreator`. Si la pregunta n
 
 El proveedor se elige con la variable `LLM_PROVIDER` (`gemini` por defecto, o `local`).
 
+### Proceso periódico
+
+Además de responder al publicar (por etiqueta), un proceso periódico hace que el agente
+responda las preguntas que **nadie contestó** dentro de su `timeout_minutes`:
+
+```bash
+uv run flask --app app respond-unanswered
+```
+
+Para que corra solo, se programa con cron (por ejemplo, cada 5 minutos):
+
+```cron
+*/5 * * * * cd /ruta/al/proyecto && uv run flask --app app respond-unanswered
+```
+
+Reglas:
+
+- Solo se consideran preguntas **sin ninguna respuesta**.
+- Si hay varios agentes, se revisan del timeout más corto al más largo y responde **uno solo**.
+- Si el LLM falla, el error se registra y la pregunta se reintenta en la próxima ejecución.
+
+### Comandos de administración
+
+```bash
+uv run flask --app app create-agent --name helper --timeout 30 --tag ia-help
+uv run flask --app app create-admin --username root --email root@example.com
+```
+
+`create-agent` crea (si no existen) las etiquetas que activan al agente.
+`create-admin` pide la contraseña por consola.
+
 ## Base de datos y migraciones
 
 Por defecto se usa SQLite (`instance/proyecto.db`). Para usar otra base, definí la variable de entorno `DATABASE_URL`. Por ejemplo, para PostgreSQL hace falta el driver y la URL de conexión:
