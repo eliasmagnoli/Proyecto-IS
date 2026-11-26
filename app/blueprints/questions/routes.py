@@ -1,4 +1,3 @@
-﻿
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
@@ -7,6 +6,7 @@ from app.extensions import db
 from app.models.category import Category
 from app.models.question import Question
 from app.models.tag import Tag
+from app.services.ai_agent_triggers import trigger_agents
 
 bp = Blueprint("questions", __name__, url_prefix="/questions")
 
@@ -49,15 +49,15 @@ def create_question():
     raw_tags = data.get("tags") or []
 
     if not title:
-        return jsonify({"error": "El tÃ­tulo es obligatorio."}), 400
+        return jsonify({"error": "El título es obligatorio."}), 400
     if not body:
         return jsonify({"error": "El cuerpo de la pregunta es obligatorio."}), 400
     if not category_id:
-        return jsonify({"error": "La categorÃ­a es obligatoria."}), 400
+        return jsonify({"error": "La categoría es obligatoria."}), 400
 
     category = db.session.get(Category, category_id)
     if category is None:
-        return jsonify({"error": "CategorÃ­a no encontrada."}), 404
+        return jsonify({"error": "Categoría no encontrada."}), 404
 
     user = current_user()
     tag_objects = []
@@ -85,5 +85,7 @@ def create_question():
     except IntegrityError:
         db.session.rollback()
         return jsonify({"error": "No se pudo guardar la pregunta."}), 400
+
+    trigger_agents(question)
 
     return jsonify(_question_to_dict(question)), 201
