@@ -4,6 +4,7 @@ from app.blueprints.questions.routes import bp as questions_bp
 from app.blueprints.responses.routes import bp as responses_bp
 from app.blueprints.users.routes import bp as users_bp
 from app.blueprints.votes.routes import bp as votes_bp
+from app.cli import register_commands
 from app.config import Config
 from app.extensions import db, migrate
 
@@ -22,6 +23,7 @@ def create_app(config: dict | None = None) -> Flask:
     app.register_blueprint(questions_bp)
     app.register_blueprint(responses_bp)
     app.register_blueprint(votes_bp)
+    register_commands(app)
 
     @app.get("/health")
     def health():
