@@ -1,4 +1,3 @@
-
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
@@ -16,17 +15,18 @@ def _question_to_dict(question: Question) -> dict:
         "id": question.id,
         "title": question.title,
         "body": question.body,
+        "score": question.calculate_score(),
         "author_id": question.author_id,
         "category_id": question.category_id,
         "tags": [tag.name for tag in question.tags],
-        "created_at": question.created_at.isoformat(),
+        "created_at": question.published_at.isoformat(),
     }
 
 
 @bp.get("/")
 def list_questions():
     questions = db.session.scalars(
-        db.select(Question).order_by(Question.created_at.desc(), Question.id.desc())
+        db.select(Question).order_by(Question.published_at.desc(), Question.id.desc())
     ).all()
     return jsonify([_question_to_dict(q) for q in questions]), 200
 
@@ -61,15 +61,18 @@ def create_question():
 
     user = current_user()
     tag_objects = []
+
     if isinstance(raw_tags, list):
         for raw_tag in raw_tags:
             tag_name = str(raw_tag).strip().lower()
             if not tag_name:
                 continue
+
             existing_tag = db.session.scalar(db.select(Tag).where(Tag.name == tag_name))
             if existing_tag is None:
                 existing_tag = Tag(name=tag_name)
                 db.session.add(existing_tag)
+
             tag_objects.append(existing_tag)
 
     question = Question(
@@ -80,6 +83,7 @@ def create_question():
         tags=tag_objects,
     )
     db.session.add(question)
+
     try:
         db.session.commit()
     except IntegrityError:

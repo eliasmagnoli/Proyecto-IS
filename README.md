@@ -131,6 +131,37 @@ def algo(): ...
 
 Sin sesión devuelve `401`; con sesión pero sin el rol necesario, `403`. Acepta varios roles: `@role_required(Role.ADMIN, Role.GENERAL_USER)`.
 
+### POST /votes/<content_id>
+
+Registra un voto positivo (`upvote`) o negativo (`downvote`) sobre una pregunta o respuesta. Recibe un JSON con el campo `value`. Requiere una sesión iniciada.
+
+```bash
+curl -b cookies.txt -X POST localhost:5000/votes/1 \
+  -H "Content-Type: application/json" \
+  -d '{"value":"upvote"}'
+```
+
+Respuestas:
+
+- `201`: voto registrado. Devuelve `id`, `content_id` y `value`.
+- `400`: tipo de voto inválido.
+- `401`: no hay sesión iniciada.
+- `403`: se intenta votar el propio contenido.
+- `404`: contenido no encontrado.
+- `409`: el usuario ya votó ese contenido.
+
+### Votos y reputación
+
+Los usuarios registrados pueden votar preguntas y respuestas con un voto positivo (`UPVOTE`) o negativo (`DOWNVOTE`). Cada usuario puede emitir un único voto por contenido. No está permitido votar el propio contenido y es necesario tener una sesión iniciada.
+
+El puntaje de cada pregunta o respuesta se calcula restando la cantidad de votos negativos a la cantidad de votos positivos:
+
+`score = upvotes - downvotes`
+
+La reputación pertenece exclusivamente a los usuarios humanos (`User`): aumenta en 1 cuando reciben un voto positivo y disminuye en 1 cuando reciben uno negativo.
+
+Los agentes de IA (`AIAgent`) también pueden recibir votos en sus respuestas, por lo que su contenido tiene un puntaje, pero **no acumulan reputación humana**. Esto mantiene separada la reputación de los usuarios del comportamiento de los agentes automatizados.
+
 ### Limitaciones conocidas
 
 - Las sesiones viven en una cookie firmada y el servidor no guarda nada. Por eso el logout solo borra la cookie del navegador: una cookie copiada antes de cerrar sesión sigue siendo válida hasta que vence (31 días por defecto).
@@ -247,7 +278,7 @@ Los archivos de `migrations/` se commitean junto con el cambio del modelo.
 ## Tests y estilo de código
 
 ```bash
-uv run pytest                # corre los tests y muestra la cobertura
-uv run ruff check            # revisa errores y orden de imports
-uv run ruff format           # formatea el código
+uv run pytest         # corre los tests y muestra la cobertura
+uv run ruff check     # revisa errores y orden de imports
+uv run ruff format    # formatea el código
 ```

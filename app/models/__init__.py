@@ -6,6 +6,7 @@ from app.models.response import Response
 from app.models.tag import Tag
 from app.models.user import Role, User
 from app.models.votable_content import VotableContent
+from app.models.vote import Vote, VoteType
 
 __all__ = [
     "AIAgent",
@@ -17,4 +18,6 @@ __all__ = [
     "Tag",
     "User",
     "VotableContent",
+    "Vote",
+    "VoteType",
 ]

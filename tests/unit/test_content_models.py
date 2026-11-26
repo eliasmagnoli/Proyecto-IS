@@ -2,7 +2,17 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
-from app.models import AIAgent, Category, Question, Response, Tag, User, VotableContent
+from app.models import (
+    AIAgent,
+    Category,
+    Question,
+    Response,
+    Tag,
+    User,
+    VotableContent,
+    Vote,
+    VoteType,
+)
 
 
 @pytest.fixture
@@ -124,3 +134,34 @@ def test_agent_can_have_trigger_tags(base):
 
     loaded = db.session.scalar(db.select(AIAgent))
     assert [t.name for t in loaded.trigger_tags] == ["ia-help"]
+
+
+def test_content_score_starts_at_zero(base):
+    user, category = base
+    question = make_question(user, category)
+
+    assert question.calculate_score() == 0
+
+
+def test_content_score_counts_upvotes_and_downvotes(base):
+    user, category = base
+    voter = User(username="bob", email="bob@example.com")
+    voter.set_password("secreto123")
+    question = make_question(user, category)
+
+    db.session.add(voter)
+    db.session.commit()
+
+    db.session.add_all(
+        [
+            Vote(user=voter, content=question, value=VoteType.UPVOTE),
+            Vote(
+                user=user,
+                content=question,
+                value=VoteType.DOWNVOTE,
+            ),
+        ]
+    )
+    db.session.commit()
+
+    assert question.calculate_score() == 0
