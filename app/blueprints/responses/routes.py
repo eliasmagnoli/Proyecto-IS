@@ -1,10 +1,11 @@
-﻿from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
 
 from app.blueprints.users.auth import current_user, login_required
 from app.extensions import db
 from app.models.question import Question
 from app.models.response import Response
+from app.patterns.factory.human_response_creator import HumanResponseCreator
 
 bp = Blueprint("responses", __name__, url_prefix="/responses")
 
@@ -36,18 +37,7 @@ def create_response():
     if question is None:
         return jsonify({"error": "Pregunta no encontrada."}), 404
 
-    user = current_user()
-    response = Response(
-        body=body,
-        question_id=question.id,
-        author_id=user.id,
-    )
-    db.session.add(response)
-    try:
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-        return jsonify({"error": "No se pudo guardar la respuesta."}), 400
+    response = HumanResponseCreator(current_user()).publish_response(question, body)
 
     return jsonify(_response_to_dict(response)), 201
 

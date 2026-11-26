@@ -1,7 +1,8 @@
-﻿import pytest
+import pytest
 
 from app.extensions import db
 from app.models import Category, Question, Response, Role, User
+from app.patterns.strategy.provider import PROVIDERS
 
 
 @pytest.fixture
@@ -139,3 +140,30 @@ def test_vote_blueprint_and_votable_content_inheritance(client, auth_client):
     assert question.type == "question"
     resp = client.get("/votes/")
     assert resp.status_code in (200, 404, 405)
+
+
+def test_question_with_agent_tag_gets_an_ai_response(auth_client, monkeypatch):
+    from app.models import AIAgent, Tag
+    from app.patterns.strategy.fake_strategy import FakeStrategy
+
+    monkeypatch.setitem(PROVIDERS, "gemini", lambda: FakeStrategy(response="Respuesta de la IA"))
+    logged_client, _, _, category = auth_client
+    agent = AIAgent(agent_name="helper", model_version="v1", trigger_tags=[Tag(name="ia-help")])
+    db.session.add(agent)
+    db.session.commit()
+
+    response = logged_client.post(
+        "/questions/",
+        json={
+            "title": "Ayuda",
+            "body": "No entiendo",
+            "category_id": category.id,
+            "tags": ["ia-help"],
+        },
+    )
+
+    assert response.status_code == 201
+    answers = db.session.scalars(db.select(Response)).all()
+    assert [(a.author.get_display_name(), a.body) for a in answers] == [
+        ("helper", "Respuesta de la IA")
+    ]
